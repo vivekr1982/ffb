@@ -1,0 +1,262 @@
+/*******************************************************************************************
+ * Project Name				: DCX Common Components     
+ * Module Name				: Exception Handling   
+ * Author					: Chaitanya Narvaneni
+ * Date Written				: 03/04/2006
+ * Program Name				: ExceptionHandlerEngine.java
+ * Program Version			: 1.0
+ * Program Description		: This interface defines the structure of all DCX exception handlers.
+ * Modification History		:   
+ * ------------------------------------------------------------------------------------------
+ * Author   Date (DD/MM/YYYY)   Version     Modification Details     Change Request Reference
+ * ------------------------------------------------------------------------------------------
+ * Chaithu   	03/04/2006      1.0        	First Draft
+ * ------------------------------------------------------------------------------------------
+ *********************************************************************************************/
+package com.dcx.commons.exceptionhandling;
+
+import java.util.Hashtable;
+
+import com.dcx.commons.exceptionhandling.config.Configuration;
+import com.dcx.commons.exceptionhandling.config.ConfiguredHandler;
+import com.dcx.commons.exceptionhandling.exceptions.IDCXException;
+import com.dcx.commons.logging.LogFactory;
+import com.dcx.commons.logging.Logger;
+
+/**
+ * @author cnarvan
+ * 
+ * Preferences - Java - Code Style - Code Templates
+ */
+public class ExceptionHandlerEngine implements IExceptionHandlerEngine {
+	private transient static final Logger logger = LogFactory
+			.getLogger(ExceptionHandlerEngine.class);
+
+	protected static final String DEFAULT_HANDLER_FILE = "ExceptionHandlerConfig.xml";
+
+	protected String handlerFileName = null;
+
+	protected Hashtable handlerCache = null;
+
+	protected static ExceptionHandlerEngine singleton = null;
+
+	protected Configuration config = null;
+
+	protected IExceptionHandler defaultHandler = null;
+
+	protected class HandlerKey {
+		private String errorCode;
+
+		private String exceptionClassName;
+
+		public HandlerKey(String errorCode, String exceptionClassName) {
+			this.errorCode = errorCode;
+			this.exceptionClassName = exceptionClassName;
+		}
+
+		public boolean equals(Object obj) {
+			boolean result = false;
+			if (obj == null || !(obj instanceof HandlerKey)) {
+				return result;
+			}
+
+			HandlerKey other = (HandlerKey) obj;
+
+			if (other.errorCode != null
+					&& other.errorCode.equals(this.errorCode)) {
+				if (other.exceptionClassName != null
+						&& other.exceptionClassName
+								.equals(this.exceptionClassName)) {
+					result = true;
+				}
+			}
+			return result;
+		}
+
+		public int hashCode() {
+			int result = 0;
+
+			result = (this.errorCode != null) ? result
+					+ this.errorCode.hashCode() : result;
+			result = (this.exceptionClassName != null) ? result
+					+ this.exceptionClassName.hashCode() : result;
+			return 10 * result;
+		}
+	}
+
+	public static ExceptionHandlerEngine getInstance() {
+		if (singleton == null) {
+			synchronized (ExceptionHandlerEngine.class) {
+				if (singleton == null) {
+					ExceptionHandlerEngine temp = new ExceptionHandlerEngine();
+					singleton = temp;
+				}
+			}
+		}
+		return singleton;
+	}
+
+	private ExceptionHandlerEngine() {
+		handlerCache = new Hashtable();
+
+		String fileName = null;
+		if (this.handlerFileName != null) {
+			fileName = this.handlerFileName;
+		} else {
+			fileName = DEFAULT_HANDLER_FILE;
+		}
+
+		config = Configuration.getInstance(fileName);
+
+		if (config != null && config.getDefaultHandlerClassName() != null) {
+			Class defautHandlerClass = null;
+
+			try {
+				defautHandlerClass = Class.forName(config
+						.getDefaultHandlerClassName());
+			} catch (ClassNotFoundException cnfe) {
+				logger.error("Default Handler ("
+						+ config.getDefaultHandlerClassName() + ") not found.",
+						cnfe);
+			}
+
+			try {
+				defaultHandler = (IExceptionHandler) defautHandlerClass
+						.newInstance();
+			} catch (Exception e) {
+				logger.error("Problem in instanciating the default handler "
+						+ defautHandlerClass.getName(), e);
+			}
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.dcx.commons.exception.handler.IExceptionHandler#handle(java.lang.Object,
+	 *      com.dcx.commons.exception.IDCXException)
+	 */
+	public Object handle(Object source, IDCXException exception) {
+		return handle(source, exception, null);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.dcx.commons.exception.handler.IExceptionHandler#handle(java.lang.Object,
+	 *      com.dcx.commons.exception.IDCXException, java.lang.Object[])
+	 */
+	public Object handle(Object source, IDCXException exception, Object[] params) {
+		Object returnValue = null;
+
+		String errorCode = (exception.getErrorCode() != null) ? exception
+				.getErrorCode().toString() : null;
+
+		IExceptionHandler handler = (IExceptionHandler) handlerCache
+				.get(new HandlerKey(errorCode, exception.getClass().getName()));
+
+		if (handler == null) {
+			handler = getHandler(errorCode, exception.getClass().getName());
+		}
+
+		if (handler == null) {
+			handler = defaultHandler;
+		}
+
+		if (handler != null) {
+			returnValue = handler.handle(source, exception, params);
+		}
+		return returnValue;
+	}
+
+	private IExceptionHandler getHandler(String errorCode,
+			String handlerClassName) {
+		IExceptionHandler returnHandler = null;
+
+		ConfiguredHandler configuredHandler = config.getConfiguredHandler(
+				errorCode, handlerClassName);
+		if (configuredHandler != null) {
+			Class clazz = null;
+			try {
+				clazz = Class.forName(configuredHandler.getHandlerClassName());
+			} catch (ClassNotFoundException cnfe) {
+				logger.error("Configured Handler ("
+						+ configuredHandler.getHandlerClassName()
+						+ ") not found", cnfe);
+			}
+
+			if (clazz != null) {
+				try {
+					returnHandler = (IExceptionHandler) clazz.newInstance();
+				} catch (Exception e) {
+					logger.error("Problem in instanciating the "
+							+ clazz.getName(), e);
+				}
+			}
+		}
+		return returnHandler;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.dcx.commons.exceptionhandling.IExceptionHandlerEngine#handle(java.lang.Object,
+	 *      com.dcx.commons.exceptionhandling.exceptions.IDCXException,
+	 *      java.lang.Object[],
+	 *      com.dcx.commons.exceptionhandling.IExceptionHandler[])
+	 */
+	public Object[] handle(Object source, IDCXException exception,
+			Object[] params, IExceptionHandler[] handlers) {
+		if (handlers == null || handlers.length > 0) {
+			return null;
+		}
+
+		Object[] returnValue = new Object[handlers.length];
+
+		for (int i = 0; i < handlers.length; i++) {
+			IExceptionHandler handler = handlers[i];
+
+			if (handler != null) {
+				returnValue[i] = handler.handle(source, exception, params);
+			} else {
+				returnValue[i] = null;
+			}
+		}
+		return returnValue;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.dcx.commons.exceptionhandling.IExceptionHandlerEngine#getHandler(com.dcx.commons.exceptionhandling.exceptions.IDCXException)
+	 */
+	public IExceptionHandler getHandler(IDCXException exception) {
+		String errorCode = (exception.getErrorCode() != null) ? exception
+				.getErrorCode().toString() : null;
+		return getHandler(errorCode, exception.getClass().getName());
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.dcx.commons.exceptionhandling.IExceptionHandlerEngine#isHandlerExistsFor(com.dcx.commons.exceptionhandling.exceptions.IDCXException)
+	 */
+	public boolean isHandlerExistsFor(IDCXException exception) {
+		return (getHandler(exception) != null) ? true : false;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.dcx.commons.exceptionhandling.IExceptionHandlerEngine#setHandler(com.dcx.commons.exceptionhandling.exceptions.IDCXException,
+	 *      com.dcx.commons.exceptionhandling.IExceptionHandler)
+	 */
+	public void setHandler(IDCXException exception, IExceptionHandler handler) {
+		String errorCode = (exception.getErrorCode() != null) ? exception
+				.getErrorCode().toString() : null;
+		HandlerKey handlerKey = new HandlerKey(errorCode, handler.getClass()
+				.getName());
+		handlerCache.put(handlerKey, handler);
+	}
+
+}
