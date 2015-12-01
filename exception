@@ -1,18 +1,3 @@
-/*******************************************************************************************
- * Project Name				: DCX Common Components     
- * Module Name				: Exception Handling   
- * Author					: Chaitanya Narvaneni
- * Date Written				: 03/04/2006
- * Program Name				: ExceptionHandlerEngine.java
- * Program Version			: 1.0
- * Program Description		: This interface defines the structure of all DCX exception handlers.
- * Modification History		:   
- * ------------------------------------------------------------------------------------------
- * Author   Date (DD/MM/YYYY)   Version     Modification Details     Change Request Reference
- * ------------------------------------------------------------------------------------------
- * Chaithu   	03/04/2006      1.0        	First Draft
- * ------------------------------------------------------------------------------------------
- *********************************************************************************************/
 package com.dcx.commons.exceptionhandling;
 
 import java.util.Hashtable;
@@ -23,11 +8,7 @@ import com.dcx.commons.exceptionhandling.exceptions.IDCXException;
 import com.dcx.commons.logging.LogFactory;
 import com.dcx.commons.logging.Logger;
 
-/**
- * @author cnarvan
- * 
- * Preferences - Java - Code Style - Code Templates
- */
+
 public class ExceptionHandlerEngine implements IExceptionHandlerEngine {
 	private transient static final Logger logger = LogFactory
 			.getLogger(ExceptionHandlerEngine.class);
