@@ -1,0 +1,108 @@
+package com.dcx.commons.exceptionhandling.exceptions;
+
+/**
+ * 
+ */
+public class DCXBusinessException extends DCXException {
+	private String errorMessage = null;
+	/**
+	 * 
+	 *  
+	 */
+	public DCXBusinessException() {
+		super();
+	}
+
+	/**
+	 * 
+	 * @param errorCode
+	 */
+	public DCXBusinessException(Object errorCode) {
+		super(errorCode);
+	}
+
+	/**
+	 * 
+	 * @param message
+	 */
+	public DCXBusinessException(String message) {
+		super(message);
+		this.errorMessage = message;
+	}
+
+	/**
+	 * 
+	 * @param errorCode
+	 * @param message
+	 */
+	public DCXBusinessException(Object errorCode, String message) {
+		super(errorCode, message);
+	}
+
+	/**
+	 * 
+	 * @param cause
+	 */
+	public DCXBusinessException(Throwable cause) {
+		super(cause);
+	}
+
+	/**
+	 * 
+	 * @param message
+	 * @param baseException
+	 */
+	public DCXBusinessException(String message, Throwable baseException) {
+		super(message, baseException);
+	}
+
+	/**
+	 * 
+	 * @param errorCode
+	 * @param baseException
+	 */
+	public DCXBusinessException(Object errorCode, Throwable baseException) {
+		super(errorCode, baseException);
+	}
+
+	/**
+	 * 
+	 * @param errorCode
+	 * @param message
+	 * @param baseException
+	 */
+	public DCXBusinessException(Object errorCode, String message,
+			Throwable baseException) {
+		super(errorCode, message, baseException);
+	}
+	
+	/**
+		 * @return String
+		 * Method for getting for Error Message
+		 */
+		public String getErrorMessage() {
+			return errorMessage;
+		}
+
+		/**
+		 * @param string
+		 * Method for setting for Error Meaasge
+		 */
+		public void setErrorMessage(String message) {
+			errorMessage = message;
+		}
+		
+	/**
+		 * The constructor that takes in an errorCode and Exception object
+		 * @param - errorCode
+		 * @param - category
+		 * @param - message
+		 */
+		public DCXBusinessException(String errorcode, String category, String message) {
+			super(message);
+			this.errorMessage = message;
+			this.errorCode = errorcode;
+		}
+
+
+}
